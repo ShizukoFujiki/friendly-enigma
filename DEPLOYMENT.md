@@ -2,30 +2,33 @@
 
 ## Current state
 
-This repository contains a static browser prototype. It can display selected filenames locally; it has no upload API, no server-side storage, no email notification, and no linked blank form. The submit button is disabled. Do not use it for real documents.
+The \`dev\` branch now has a FastAPI upload route and a browser form wired to it. The live hostname still serves the older static page from \`main\`; this branch has not been deployed. Uploads are disabled unless the operator explicitly configures the service. The correct blank form is not in this repository.
 
-## Environment flow
+The upload endpoint accepts anonymous public submissions after Cloudflare Turnstile verification. It accepts PDF, JPG, and PNG by file signature, limits uploads to five files and 20 MB per file, rate-limits each client IP in memory, scans with ClamAV, and writes random-named files under a private directory outside the web root. It does not provide a public file retrieval route or staff dashboard. The staff workflow for retrieving files must be approved and protected on the host.
 
-- `dev` is for staging changes and testing with dummy files only.
-- `main` is the production release branch. Deploy production from a reviewed commit after the operational gates below are complete.
-- Keep development and production configuration, storage paths, credentials, logs, and backups separate.
-- Never put uploads, PDFs, credentials, or patient information in this repository or its build output.
+## Development setup
 
-## Production gates
+Use dummy documents only. Create a virtual environment in the checkout and install \`server/requirements.txt\`. Copy \`.env.example\` to a private environment file for local testing. Keep \`ENABLE_UPLOADS=0\` unless the test Turnstile, SMTP, and ClamAV configuration is available.
 
-Before enabling submission, the server owner must configure and verify:
+## Linux service deployment
 
-1. TLS on the public host and an HTTPS redirect; only the reverse proxy is internet-facing.
-2. A server-side upload endpoint with explicit file-size/type limits, generated storage names, access controls, abuse limits, and safe error handling.
-3. Private storage outside the web root with restricted service-account permissions, encryption and backup/restore procedures.
-4. An approved authentication/access model for staff and submitters.
-5. A generic email alert that contains no document, patient details, or filenames.
-6. Retention/deletion rules, access logging, monitoring, and a restore check.
-7. The correct blank form and approved logo files.
-8. A reviewed end-to-end staging run with dummy documents, followed by an explicit production release.
+1. Create a dedicated unprivileged account named \`sunriver-intake\`. Install the checkout under \`/opt/sunriver-intake\`.
+2. Create \`/var/lib/sunriver-intake/submissions\` and \`/var/lib/sunriver-intake/tmp\`, owned by that account, mode \`0700\`. These paths must remain outside the code and public web roots.
+3. Create \`/etc/sunriver-intake.env\` from \`.env.example\`; set owner root and mode \`0600\`. Fill in real Turnstile keys, SMTP STARTTLS settings, and the approved notification address. Keep this file and all secrets out of GitHub.
+4. Install and start ClamAV; verify \`clamdscan\` works for the service account.
+5. Install the virtual environment and dependencies, then install \`server/sunriver-intake.service.example\` as a systemd unit.
+6. Configure the existing TLS reverse proxy to send this hostname to \`127.0.0.1:8787\`. Enforce a 25 MB request-body limit, preserve the host, and pass the real client address only from this trusted proxy. Do not expose port 8787 directly.
+7. Verify the filesystem or encrypted volume, staff access method, backup, restore, retention, and monitoring plan. The service stores files with restrictive Unix permissions but does not add application-level encryption.
+8. Confirm the blank PDF is the correct approved shareable form and add it only to a public forms directory after review. Never publish a completed personal copy.
+9. Test in the dev environment with dummy files. Confirm successful upload, rejection of invalid/oversized files, virus scan behavior, private filesystem permissions, and generic email delivery before a production release.
 
-This checklist is an engineering handoff, not a compliance certification. Do not accept real or sensitive documents until the organization responsible for the service approves the hosting and handling arrangements.
+\`ENABLE_UPLOADS=1\` is effective only when HTTPS public origin, Turnstile, SMTP, and ClamAV are all configured. The page stays in preview mode if the upload service is not fully configured. Email alerts contain only a random submission reference, never filenames or attachments.
 
-## Deploy coordination
+## Environments and release
 
-The server operator should record the staging URL, production URL, deployment user/service, and rollback commit in the team's operations notes. Keep production deployments reversible by pinning each release to a Git commit.
+- \`dev\` is for staging and dummy-file checks.
+- \`main\` is production. Deploy a reviewed commit manually and record the commit for rollback.
+- Keep dev and production credentials, storage, alerts, logs, and backups separate.
+- Do not store uploaded documents, PDFs, credentials, or patient information in this public repository.
+
+This engineering checklist is not a HIPAA compliance certification. Before accepting ePHI, the responsible organization must approve the full environment and complete its own risk and contractual review. HHS states that a cloud service provider that creates, receives, maintains, or transmits ePHI on behalf of a covered entity or business associate requires a HIPAA-compliant BAA and compliance with the HIPAA Rules: [HHS cloud computing FAQ](https://www.hhs.gov/hipaa/for-professionals/faq/may-a-hipaa-covered-entity-or-business-associate-use-cloud-service-to-store-or-process-ephi/index.html).
