@@ -262,7 +262,7 @@
           <div class="upload-box">
             <label for="documents"><strong>Select document files</strong></label>
             <input class="file-picker" id="documents" name="documents" type="file" accept=".pdf,.png,.jpg,.jpeg,application/pdf,image/png,image/jpeg" multiple>
-            <p class="hint" id="upload-service-hint">PDF, JPG, or PNG, up to 20 MB each. Server validation is enforced.</p>
+            <p class="hint" id="upload-service-hint">PDF, JPG, or PNG; up to 20 MB per file and 25 MB total, with up to five files.</p>
             <div id="turnstile-box" class="hint" aria-live="polite"></div>
             <div class="honeypot" aria-hidden="true"><label>Leave this field empty<input type="text" name="website" id="website" tabindex="-1" autocomplete="off"></label></div>
             <ul class="file-list" id="file-list" aria-live="polite"></ul>
@@ -289,6 +289,9 @@
     const submit = document.getElementById("submit");
     const turnstileBox = document.getElementById("turnstile-box");
     let serviceEnabled = false;
+    let maxFileBytes = 20 * 1024 * 1024;
+    let maxTotalBytes = 25 * 1024 * 1024;
+    let maxFiles = 5;
     let turnstileToken = "";
     let sending = false;
     let widgetId = null;
@@ -299,15 +302,24 @@
       return (bytes / (1024 * 1024)).toFixed(1) + " MB";
     }
 
+    function selectionValid() {
+      const files = Array.from(picker.files || []);
+      return files.length > 0 && files.length <= maxFiles &&
+        files.every(file => file.size <= maxFileBytes) &&
+        files.reduce((sum, file) => sum + file.size, 0) <= maxTotalBytes;
+    }
+
     function updateSubmitState() {
-      submit.disabled = !serviceEnabled || !picker.files.length || sending || !turnstileToken;
+      submit.disabled = !serviceEnabled || !selectionValid() || sending || !turnstileToken;
     }
 
     function renderFiles() {
       list.replaceChildren();
       const files = Array.from(picker.files || []);
+      const totalBytes = files.reduce((sum, file) => sum + file.size, 0);
       status.textContent = files.length
-        ? files.length + (files.length === 1 ? " file selected." : " files selected.")
+        ? files.length + (files.length === 1 ? " file selected." : " files selected.") +
+          (selectionValid() ? "" : " Selection exceeds the file count or size limit.")
         : "No files selected.";
       files.forEach((file, index) => {
         const item = document.createElement("li");
@@ -365,6 +377,10 @@
         if (!response.ok) throw new Error("status");
         const config = await response.json();
         serviceEnabled = config.enabled === true && Boolean(config.siteKey);
+        maxFileBytes = Number(config.maxFileBytes) || maxFileBytes;
+        maxTotalBytes = Number(config.maxTotalBytes) || maxTotalBytes;
+        maxFiles = Number(config.maxFiles) || maxFiles;
+        renderFiles();
         serviceState.textContent = serviceEnabled
           ? "Submission service is available. Review the filenames before submitting."
           : "Preview only: file selection works, but no files are uploaded or stored.";
