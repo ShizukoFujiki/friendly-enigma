@@ -22,6 +22,7 @@ from fastapi.staticfiles import StaticFiles
 ROOT = Path(__file__).resolve().parent.parent
 INDEX = ROOT / "index.html"
 UPLOAD_ROOT = Path(os.environ.get("UPLOAD_DIR", "/var/lib/sunriver-intake/submissions")).resolve()
+ALERT_QUEUE = Path(os.environ.get("ALERT_QUEUE_DIR", "/var/lib/sunriver-intake/pending-alerts")).resolve()
 TEMP_ROOT = Path(os.environ.get("TMPDIR", "/var/lib/sunriver-intake/tmp")).resolve()
 MAX_FILE_BYTES = 20 * 1024 * 1024
 MAX_FILES = 5
@@ -65,6 +66,7 @@ async def startup() -> None:
             raise RuntimeError("clamdscan is required when uploads are enabled.")
         if not upload_configured():
             raise RuntimeError("Upload configuration is incomplete; refusing to start enabled intake.")
+        app.state.alert_task = asyncio.create_task(retry_alerts())
 
 
 @app.middleware("http")
@@ -159,6 +161,21 @@ def scan_file(path: Path) -> bool:
         return False
 
 
+async def retry_alerts() -> None:
+    while True:
+        for pending in ALERT_QUEUE.glob("*.pending"):
+            reference = pending.stem
+            if len(reference) != 32 or any(c not in "0123456789abcdef" for c in reference):
+                continue
+            try:
+                if await asyncio.to_thread(send_notification, reference):
+                    pending.unlink(missing_ok=True)
+                    log.info("Notification delivered for submission reference %s", reference)
+            except Exception:
+                log.warning("Notification retry failed for submission reference %s", reference)
+        await asyncio.sleep(30)
+
+
 def send_notification(reference: str) -> bool:
     message = EmailMessage()
     message["Subject"] = "New document submission received"
@@ -226,7 +243,7 @@ async def create_submission(
                 out.write(first)
                 while chunk := await upload.read(1024 * 1024):
                     size += len(chunk)
-                    if size > MAX_FILE_BYTES or total + size > MAX_REQUEST_BYTES:
+                    if size > MAX_FILE_BYTES or total + size > MAX_TOTAL_FILE_BYTES:
                         raise HTTPException(status_code=413, detail="The selected files exceed the upload limit.")
                     out.write(chunk)
                 out.flush()
@@ -247,6 +264,12 @@ async def create_submission(
             json.dump(manifest, out)
             out.flush()
             os.fsync(out.fileno())
+        pending = ALERT_QUEUE / f"{reference}.pending"
+        with pending.open("x", encoding="ascii") as out:
+            os.chmod(pending, 0o600)
+            out.write(reference + "\n")
+            out.flush()
+            os.fsync(out.fileno())
     except HTTPException:
         shutil.rmtree(submission_dir, ignore_errors=True)
         raise
@@ -258,11 +281,7 @@ async def create_submission(
         for upload in documents:
             await upload.close()
 
-    if not send_notification(reference):
-        # Keep the files private and retrievable; the server log contains the reference for follow-up.
-        log.error("Submission stored; notification needs retry. Reference %s", reference)
-    else:
-        log.info("Submission received. Reference %s", reference)
+    log.info("Submission received. Reference %s", reference)
     return JSONResponse({"ok": True, "reference": reference}, status_code=201)
 
 
