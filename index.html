@@ -190,6 +190,7 @@
       font-weight: 600;
       cursor: pointer;
     }
+    .honeypot { position: absolute; left: -10000px; width: 1px; height: 1px; overflow: hidden; }
     .status {
       min-height: 1.5em;
       margin: .85rem 0 0;
@@ -239,7 +240,7 @@
     </section>
 
     <aside class="notice" aria-label="Preview status">
-      <p><strong>Page preview:</strong> filename review works in this draft. Download and submission are not connected yet.</p>
+      <p><strong id="service-state">Checking submission service…</strong></p>
     </aside>
 
     <section class="card" aria-label="Document exchange steps">
@@ -261,12 +262,14 @@
           <div class="upload-box">
             <label for="documents"><strong>Select document files</strong></label>
             <input class="file-picker" id="documents" name="documents" type="file" accept=".pdf,.png,.jpg,.jpeg,application/pdf,image/png,image/jpeg" multiple>
-            <p class="hint">PDF, JPG, or PNG. Files remain on this device in this preview; nothing is uploaded.</p>
+            <p class="hint" id="upload-service-hint">PDF, JPG, or PNG, up to 20 MB each. Server validation is enforced.</p>
+            <div id="turnstile-box" class="hint" aria-live="polite"></div>
+            <div class="honeypot" aria-hidden="true"><label>Leave this field empty<input type="text" name="website" id="website" tabindex="-1" autocomplete="off"></label></div>
             <ul class="file-list" id="file-list" aria-live="polite"></ul>
             <p class="status" id="status" role="status"></p>
             <div class="submit-area">
               <button class="button" id="submit" type="button" disabled>Submit documents</button>
-              <p class="hint">Submission will be enabled after authenticated private storage and the notification service are connected.</p>
+              <p class="hint">Files are stored outside the public web directory. Email alerts contain only a submission reference. Real documents should be submitted only after the service owner approves the host and storage.</p>
             </div>
           </div>
         </div>
@@ -275,18 +278,29 @@
   </main>
 
   <footer>
-    Draft interface only. Do not submit real documents here until the private upload service is enabled.
+    Development preview. Do not submit real documents until the service owner confirms the upload system and hosting are approved.
   </footer>
 
   <script>
     const picker = document.getElementById("documents");
     const list = document.getElementById("file-list");
     const status = document.getElementById("status");
+    const serviceState = document.getElementById("service-state");
+    const submit = document.getElementById("submit");
+    const turnstileBox = document.getElementById("turnstile-box");
+    let serviceEnabled = false;
+    let turnstileToken = "";
+    let sending = false;
+    let widgetId = null;
 
     function formatSize(bytes) {
       if (bytes < 1024) return bytes + " B";
       if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(0) + " KB";
       return (bytes / (1024 * 1024)).toFixed(1) + " MB";
+    }
+
+    function updateSubmitState() {
+      submit.disabled = !serviceEnabled || !picker.files.length || sending || !turnstileToken;
     }
 
     function renderFiles() {
@@ -295,17 +309,14 @@
       status.textContent = files.length
         ? files.length + (files.length === 1 ? " file selected." : " files selected.")
         : "No files selected.";
-
       files.forEach((file, index) => {
         const item = document.createElement("li");
         const name = document.createElement("span");
         name.className = "file-name";
         name.textContent = file.name;
-
         const size = document.createElement("span");
         size.className = "file-size";
         size.textContent = formatSize(file.size);
-
         const remove = document.createElement("button");
         remove.type = "button";
         remove.className = "remove";
@@ -317,17 +328,88 @@
             if (entryIndex !== index) next.items.add(entry);
           });
           picker.files = next.files;
+          turnstileToken = "";
+          if (widgetId !== null && window.turnstile) window.turnstile.reset(widgetId);
           renderFiles();
           picker.focus();
         });
-
         item.append(name, size, remove);
         list.append(item);
       });
+      updateSubmitState();
     }
+
+    function initializeTurnstile(siteKey) {
+      const widget = document.createElement("div");
+      turnstileBox.replaceChildren(widget);
+      const script = document.createElement("script");
+      script.src = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
+      script.async = true;
+      script.defer = true;
+      script.onload = () => {
+        if (!window.turnstile) return;
+        widgetId = window.turnstile.render(widget, {
+          sitekey: siteKey,
+          callback: token => { turnstileToken = token; updateSubmitState(); },
+          "expired-callback": () => { turnstileToken = ""; updateSubmitState(); },
+          "error-callback": () => { turnstileToken = ""; updateSubmitState(); }
+        });
+      };
+      script.onerror = () => { turnstileBox.textContent = "Verification could not load. Try again later."; };
+      document.head.append(script);
+    }
+
+    async function loadServiceConfig() {
+      try {
+        const response = await fetch("/api/config", { cache: "no-store" });
+        if (!response.ok) throw new Error("status");
+        const config = await response.json();
+        serviceEnabled = config.enabled === true && Boolean(config.siteKey);
+        serviceState.textContent = serviceEnabled
+          ? "Submission service is available. Review the filenames before submitting."
+          : "Preview only: file selection works, but no files are uploaded or stored.";
+        if (serviceEnabled) initializeTurnstile(config.siteKey);
+      } catch {
+        serviceState.textContent = "Preview only: the submission service is not connected.";
+      }
+      updateSubmitState();
+    }
+
+    picker.addEventListener("change", () => {
+      turnstileToken = "";
+      if (widgetId !== null && window.turnstile) window.turnstile.reset(widgetId);
+      renderFiles();
+    });
+
+    submit.addEventListener("click", async () => {
+      if (submit.disabled) return;
+      sending = true;
+      updateSubmitState();
+      status.textContent = "Submitting files…";
+      const body = new FormData();
+      Array.from(picker.files).forEach(file => body.append("documents", file, file.name));
+      body.append("website", document.getElementById("website").value);
+      body.append("cf_turnstile_response", turnstileToken);
+      try {
+        const response = await fetch("/api/submissions", { method: "POST", body, credentials: "same-origin" });
+        const result = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(result.detail || "Submission failed. Please try again later.");
+        picker.value = "";
+        turnstileToken = "";
+        if (widgetId !== null && window.turnstile) window.turnstile.reset(widgetId);
+        renderFiles();
+        status.textContent = "Submission received. Reference: " + result.reference;
+      } catch (error) {
+        status.textContent = error.message || "Submission failed. Please try again later.";
+      } finally {
+        sending = false;
+        updateSubmitState();
+      }
+    });
 
     picker.addEventListener("change", renderFiles);
     renderFiles();
+    loadServiceConfig();
   </script>
 </body>
 </html>
