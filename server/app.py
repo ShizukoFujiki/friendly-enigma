@@ -44,7 +44,7 @@ def upload_configured() -> bool:
         "PUBLIC_ORIGIN", "TURNSTILE_SITE_KEY", "TURNSTILE_SECRET_KEY",
         "SMTP_HOST", "SMTP_USERNAME", "SMTP_PASSWORD", "SMTP_FROM", "NOTIFY_TO",
     )
-    return cfg("ENABLE_UPLOADS") == "1" and all(cfg(k) for k in required) and shutil.which("clamdscan") is not None
+    return cfg("ENABLE_UPLOADS") == "1" and cfg("PUBLIC_ORIGIN").startswith("https://") and all(cfg(k) for k in required) and shutil.which("clamdscan") is not None
 
 
 def check_private_paths() -> None:
