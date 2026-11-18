@@ -316,7 +316,6 @@
     function renderFiles() {
       list.replaceChildren();
       const files = Array.from(picker.files || []);
-      const totalBytes = files.reduce((sum, file) => sum + file.size, 0);
       status.textContent = files.length
         ? files.length + (files.length === 1 ? " file selected." : " files selected.") +
           (selectionValid() ? "" : " Selection exceeds the file count or size limit.")
@@ -423,7 +422,6 @@
       }
     });
 
-    picker.addEventListener("change", renderFiles);
     renderFiles();
     loadServiceConfig();
   </script>
