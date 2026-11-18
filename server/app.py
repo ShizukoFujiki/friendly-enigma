@@ -25,7 +25,8 @@ UPLOAD_ROOT = Path(os.environ.get("UPLOAD_DIR", "/var/lib/sunriver-intake/submis
 TEMP_ROOT = Path(os.environ.get("TMPDIR", "/var/lib/sunriver-intake/tmp")).resolve()
 MAX_FILE_BYTES = 20 * 1024 * 1024
 MAX_FILES = 5
-MAX_REQUEST_BYTES = 25 * 1024 * 1024
+MAX_TOTAL_FILE_BYTES = 25 * 1024 * 1024
+MAX_REQUEST_BYTES = 26 * 1024 * 1024
 RATE_LIMIT_COUNT = 5
 RATE_LIMIT_SECONDS = 60 * 60
 
@@ -99,6 +100,7 @@ async def public_config():
         "enabled": enabled,
         "siteKey": cfg("TURNSTILE_SITE_KEY") if enabled else "",
         "maxFileBytes": MAX_FILE_BYTES,
+        "maxTotalBytes": MAX_TOTAL_FILE_BYTES,
         "maxFiles": MAX_FILES,
     }
 
@@ -217,7 +219,7 @@ async def create_submission(
             mime, suffix = media
             target = submission_dir / f"{index:02d}{suffix}"
             size = len(first)
-            if size > MAX_FILE_BYTES or total + size > MAX_REQUEST_BYTES:
+            if size > MAX_FILE_BYTES or total + size > MAX_TOTAL_FILE_BYTES:
                 raise HTTPException(status_code=413, detail="The selected files exceed the upload limit.")
             with target.open("xb") as out:
                 os.chmod(target, 0o600)
