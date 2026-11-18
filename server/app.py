@@ -66,6 +66,27 @@ async def startup() -> None:
             raise RuntimeError("Upload configuration is incomplete; refusing to start enabled intake.")
 
 
+@app.middleware("http")
+async def security_headers(request: WebRequest, call_next):
+    if request.method == "POST" and request.url.path == "/api/submissions":
+        length = request.headers.get("content-length")
+        if length and length.isdigit() and int(length) > MAX_REQUEST_BYTES:
+            return JSONResponse({"detail": "The selected files exceed the upload limit."}, status_code=413)
+    response = await call_next(request)
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Referrer-Policy"] = "no-referrer"
+    response.headers["Cache-Control"] = "no-store"
+    response.headers["Content-Security-Policy"] = (
+        "default-src 'self'; base-uri 'none'; object-src 'none'; frame-ancestors 'none'; "
+        "form-action 'self'; connect-src 'self' https://challenges.cloudflare.com; "
+        "frame-src https://challenges.cloudflare.com; "
+        "script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com; "
+        "style-src 'self' 'unsafe-inline'"
+    )
+    return response
+
+
 @app.get("/")
 async def home():
     return FileResponse(INDEX, media_type="text/html")
@@ -128,7 +149,7 @@ def identify_media(header: bytes) -> tuple[str, str] | None:
 def scan_file(path: Path) -> bool:
     try:
         result = subprocess.run(
-            ["clamdscan", "--no-summary", str(path)],
+            ["clamdscan", "--fdpass", "--no-summary", str(path)],
             check=False, capture_output=True, text=True, timeout=30,
         )
         return result.returncode == 0
@@ -203,13 +224,12 @@ async def create_submission(
                 out.write(first)
                 while chunk := await upload.read(1024 * 1024):
                     size += len(chunk)
-                    total += len(chunk)
                     if size > MAX_FILE_BYTES or total + size > MAX_REQUEST_BYTES:
                         raise HTTPException(status_code=413, detail="The selected files exceed the upload limit.")
                     out.write(chunk)
                 out.flush()
                 os.fsync(out.fileno())
-            total += len(first)
+            total += size
             if not scan_file(target):
                 raise HTTPException(status_code=422, detail="A selected file could not pass the security scan.")
             saved.append({"file": target.name, "type": mime, "bytes": str(size)})
