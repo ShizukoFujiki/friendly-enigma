@@ -1,0 +1,28 @@
+[Unit]
+Description=Sun River document intake web service
+After=network-online.target clamav-daemon.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=sunriver-intake
+Group=sunriver-intake
+WorkingDirectory=/opt/sunriver-intake
+EnvironmentFile=/etc/sunriver-intake.env
+Environment=TMPDIR=/var/lib/sunriver-intake/tmp
+ExecStart=/opt/sunriver-intake/.venv/bin/uvicorn server.app:app --host 127.0.0.1 --port 8787 --proxy-headers --forwarded-allow-ips=127.0.0.1
+Restart=on-failure
+RestartSec=3
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ReadWritePaths=/var/lib/sunriver-intake
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+
+[Install]
+WantedBy=multi-user.target
