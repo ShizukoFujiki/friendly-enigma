@@ -47,19 +47,14 @@
       color: var(--navy);
       font-weight: 700;
     }
-    .logo-placeholder {
-      display: grid;
-      place-items: center;
-      min-width: 132px;
-      height: 42px;
-      padding: 0 .75rem;
-      border: 1px dashed #91a8b0;
-      border-radius: 6px;
-      color: var(--muted);
-      font-size: .75rem;
-      font-weight: 500;
-      text-align: center;
+    .brand-logo {
+      display: block;
+      width: auto;
+      max-height: 42px;
+      object-fit: contain;
     }
+    .brand-logo-primary { max-width: 190px; }
+    .brand-logo-partner { max-width: 180px; }
     .brand-divider {
       width: 1px;
       height: 34px;
@@ -213,6 +208,9 @@
     @media (max-width: 560px) {
       .topbar-inner { align-items: flex-start; flex-direction: column; padding: 1rem 0; }
       .brand-lockup { flex-wrap: wrap; }
+      .brand-logo { max-height: 36px; }
+      .brand-logo-primary { max-width: 165px; }
+      .brand-logo-partner { max-width: 155px; }
       .brand-divider { display: none; }
       main { padding-top: 2rem; }
       .step { grid-template-columns: 2rem 1fr; gap: .75rem; }
@@ -224,9 +222,9 @@
   <header class="topbar">
     <div class="topbar-inner">
       <div class="brand-lockup" aria-label="Document exchange">
-        <span class="logo-placeholder">Hymecymeyseh logo</span>
+        <img class="brand-logo brand-logo-primary" src="/assets/hymecymeyseh-monofett-transparent.png" alt="Hymecymeyseh" width="1555" height="180">
         <span class="brand-divider" aria-hidden="true"></span>
-        <span class="logo-placeholder">Sun River Health logo</span>
+        <img class="brand-logo brand-logo-partner" src="/assets/sun-river-health-transparent.png" alt="Sun River Health" width="1260" height="265">
       </div>
       <p class="eyebrow">Document exchange</p>
     </div>
