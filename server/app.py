@@ -50,12 +50,11 @@ def upload_configured() -> bool:
 
 
 def check_private_paths() -> None:
-    if ROOT == UPLOAD_ROOT or ROOT in UPLOAD_ROOT.parents:
-        raise RuntimeError("UPLOAD_DIR must be outside the application directory.")
-    UPLOAD_ROOT.mkdir(mode=0o700, parents=True, exist_ok=True)
-    TEMP_ROOT.mkdir(mode=0o700, parents=True, exist_ok=True)
-    os.chmod(UPLOAD_ROOT, 0o700)
-    os.chmod(TEMP_ROOT, 0o700)
+    for private_path in (UPLOAD_ROOT, ALERT_QUEUE, TEMP_ROOT):
+        if private_path == ROOT or ROOT in private_path.parents:
+            raise RuntimeError("Private data paths must be outside the application directory.")
+        private_path.mkdir(mode=0o700, parents=True, exist_ok=True)
+        os.chmod(private_path, 0o700)
 
 
 @app.on_event("startup")
