@@ -10,7 +10,7 @@ Group=sunriver-intake
 WorkingDirectory=/opt/sunriver-intake
 EnvironmentFile=/etc/sunriver-intake.env
 Environment=TMPDIR=/var/lib/sunriver-intake/tmp
-ExecStart=/opt/sunriver-intake/.venv/bin/uvicorn server.app:app --host 127.0.0.1 --port 8787 --proxy-headers --forwarded-allow-ips=127.0.0.1
+ExecStart=/opt/sunriver-intake/.venv/bin/uvicorn server.app:app --host 127.0.0.1 --port 8790 --proxy-headers --forwarded-allow-ips=127.0.0.1
 Restart=on-failure
 RestartSec=3
 UMask=0077
