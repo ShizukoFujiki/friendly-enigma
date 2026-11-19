@@ -1,10 +1,26 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" prefix="og: https://ogp.me/ns#">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="light">
   <title>Document exchange</title>
+  <link rel="canonical" href="https://sunriver.hymecymeyseh.fun/">
+  <meta name="description" content="Download the blank endodontic Medicaid referral form from Sunriver Document Exchange.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://sunriver.hymecymeyseh.fun/">
+  <meta property="og:title" content="Sunriver Document Exchange">
+  <meta property="og:description" content="Download the blank endodontic Medicaid referral form.">
+  <meta property="og:image" content="https://sunriver.hymecymeyseh.fun/assets/sunriver-medicaid-social-card.jpg">
+  <meta property="og:image:type" content="image/jpeg">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="Medicaid Form. Document shared with Sun River Health. A father holds a sleeping baby.">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Sunriver Document Exchange">
+  <meta name="twitter:description" content="Download the blank endodontic Medicaid referral form.">
+  <meta name="twitter:image" content="https://sunriver.hymecymeyseh.fun/assets/sunriver-medicaid-social-card.jpg">
+  <meta name="twitter:image:alt" content="Medicaid Form. Document shared with Sun River Health. A father holds a sleeping baby.">
   <style>
     :root {
       --navy: #163746;
@@ -142,9 +158,9 @@
       border: 1px solid var(--teal);
       background: white;
       color: var(--teal-dark);
-      cursor: not-allowed;
-      opacity: .72;
     }
+    .button.secondary:hover:not(:disabled) { background: var(--wash); }
+    .button[hidden] { display: none; }
     .button:disabled { cursor: not-allowed; opacity: .62; }
     .upload-box {
       padding: 1.2rem;
@@ -247,8 +263,8 @@
         <div>
           <h2>Download the form</h2>
           <p class="step-copy">Get a blank copy of the form to complete.</p>
-          <button class="button secondary" type="button" disabled>Download blank form (PDF)</button>
-          <p class="hint">The public blank form will be linked here after the correct shareable copy is confirmed.</p>
+          <button class="button secondary" id="form-unavailable" type="button" disabled>Download blank form (PDF)</button>
+          <a class="button secondary" id="form-download" href="/medicaid-form" download hidden>Download blank form (PDF)</a>
         </div>
       </div>
 
@@ -373,6 +389,10 @@
         const response = await fetch("/api/config", { cache: "no-store" });
         if (!response.ok) throw new Error("status");
         const config = await response.json();
+        if (config.blankFormAvailable === true) {
+          document.getElementById("form-unavailable").hidden = true;
+          document.getElementById("form-download").hidden = false;
+        }
         serviceEnabled = config.enabled === true && Boolean(config.siteKey);
         maxFileBytes = Number(config.maxFileBytes) || maxFileBytes;
         maxTotalBytes = Number(config.maxTotalBytes) || maxTotalBytes;

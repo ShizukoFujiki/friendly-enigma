@@ -19,7 +19,7 @@ Use dummy documents only. Create a virtual environment in the checkout and insta
 5. Install the virtual environment and dependencies, then install \`server/sunriver-intake.service.example\` as a systemd unit.
 6. Configure the existing TLS reverse proxy to send this hostname to \`127.0.0.1:8790\`. Enforce a 26 MB request-body limit (25 MB of files plus multipart overhead), preserve the host, and pass the real client address only from this trusted proxy. Do not expose port 8787 directly.
 7. Verify the filesystem or encrypted volume, staff access method, backup, restore, retention, and monitoring plan. The service stores files with restrictive Unix permissions but does not add application-level encryption.
-8. Confirm the blank PDF is the correct approved shareable form and add it only to a public forms directory after review. Never publish a completed personal copy.
+8. After confirming the PDF is the approved blank form, install it outside the checkout at an absolute path readable by the service account, such as `/opt/sunriver-forms/medicaid-form.pdf`. Set `BLANK_FORM_PATH` in `/etc/sunriver-intake.env` and restart the service. Leave it unset to disable the download. The download works independently of uploads.
 9. Test in the dev environment with dummy files. Confirm successful upload, rejection of invalid/oversized files, virus scan behavior, private filesystem permissions, and generic email delivery before a production release.
 
 \`ENABLE_UPLOADS=1\` is effective only when HTTPS public origin, Turnstile, SMTP, and ClamAV are all configured. The page stays in preview mode if the upload service is not fully configured. Email alerts contain only a random submission reference, never filenames or attachments.

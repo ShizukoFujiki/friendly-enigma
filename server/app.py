@@ -94,11 +94,28 @@ async def home():
     return FileResponse(INDEX, media_type="text/html")
 
 
+def blank_form_path() -> Path | None:
+    configured_path = cfg("BLANK_FORM_PATH")
+    if not configured_path:
+        return None
+    path = Path(configured_path)
+    return path if path.is_absolute() and path.is_file() else None
+
+
+@app.get("/medicaid-form")
+async def download_blank_form():
+    path = blank_form_path()
+    if path is None:
+        raise HTTPException(status_code=404, detail="Blank form unavailable.")
+    return FileResponse(path, media_type="application/pdf", filename="Endo Medicaid Referral Letter and Form.pdf")
+
+
 @app.get("/api/config")
 async def public_config():
     enabled = upload_configured()
     return {
         "enabled": enabled,
+        "blankFormAvailable": blank_form_path() is not None,
         "siteKey": cfg("TURNSTILE_SITE_KEY") if enabled else "",
         "maxFileBytes": MAX_FILE_BYTES,
         "maxTotalBytes": MAX_TOTAL_FILE_BYTES,
