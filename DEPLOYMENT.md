@@ -17,7 +17,7 @@ Use dummy documents only. Create a virtual environment in the checkout and insta
 3. Create \`/etc/sunriver-intake.env\` from \`.env.example\`; set owner root and mode \`0600\`. Fill in real Turnstile keys, SMTP STARTTLS settings, and the approved notification address. Keep this file and all secrets out of GitHub.
 4. Install and start ClamAV; verify \`clamdscan\` works for the service account.
 5. Install the virtual environment and dependencies, then install \`server/sunriver-intake.service.example\` as a systemd unit.
-6. Configure the existing TLS reverse proxy to send this hostname to \`127.0.0.1:8790\`. Enforce a 26 MB request-body limit (25 MB of files plus multipart overhead), preserve the host, and pass the real client address only from this trusted proxy. Do not expose port 8787 directly.
+6. Choose a dedicated loopback port for the production intake service and update its systemd unit before enabling it. Configure the existing TLS reverse proxy to forward the production hostname to that port. Enforce a 26 MB request-body limit (25 MB of files plus multipart overhead), preserve the host, and pass the real client address only from this trusted proxy. Keep the origin bound to loopback.
 7. Verify the filesystem or encrypted volume, staff access method, backup, restore, retention, and monitoring plan. The service stores files with restrictive Unix permissions but does not add application-level encryption.
 8. After confirming the PDF is the approved blank form, install it outside the checkout at an absolute path readable by the service account, such as `/opt/sunriver-forms/medicaid-form.pdf`. Set `BLANK_FORM_PATH` in `/etc/sunriver-intake.env` and restart the service. Leave it unset to disable the download. The download works independently of uploads.
 9. Test in the dev environment with dummy files. Confirm successful upload, rejection of invalid/oversized files, virus scan behavior, private filesystem permissions, and generic email delivery before a production release.
@@ -25,6 +25,8 @@ Use dummy documents only. Create a virtual environment in the checkout and insta
 \`ENABLE_UPLOADS=1\` is effective only when HTTPS public origin, Turnstile, SMTP, and ClamAV are all configured. The page stays in preview mode if the upload service is not fully configured. Email alerts contain only a random submission reference, never filenames or attachments.
 
 ## Environments and release
+
+The Ubuntu staging service is `sunriver-staging.service`. Its Cloudflare route for `sunriver-staging.hymecymeyseh.fun` forwards to `http://127.0.0.1:8791`. Port `8790` is assigned to Mailbridge on that host. Staging notification settings use `mail.smtp2go.com:587` with STARTTLS. Confirm the approved sender, test recipient, dedicated SMTP credentials, and secret storage before enabling a dummy-file test.
 
 - \`dev\` is for staging and dummy-file checks.
 - \`main\` is production. Deploy a reviewed commit manually and record the commit for rollback.
