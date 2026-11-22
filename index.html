@@ -1,10 +1,26 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" prefix="og: https://ogp.me/ns#">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="light">
   <title>Document exchange</title>
+  <link rel="canonical" href="https://sunriver.hymecymeyseh.fun/">
+  <meta name="description" content="Download the blank endodontic Medicaid referral form from Sunriver Document Exchange.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://sunriver.hymecymeyseh.fun/">
+  <meta property="og:title" content="Sunriver Document Exchange">
+  <meta property="og:description" content="Download the blank endodontic Medicaid referral form.">
+  <meta property="og:image" content="https://sunriver.hymecymeyseh.fun/assets/sunriver-medicaid-social-card.jpg">
+  <meta property="og:image:type" content="image/jpeg">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="Medicaid Form. Document shared with Sun River Health. A father holds a sleeping baby.">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Sunriver Document Exchange">
+  <meta name="twitter:description" content="Download the blank endodontic Medicaid referral form.">
+  <meta name="twitter:image" content="https://sunriver.hymecymeyseh.fun/assets/sunriver-medicaid-social-card.jpg">
+  <meta name="twitter:image:alt" content="Medicaid Form. Document shared with Sun River Health. A father holds a sleeping baby.">
   <style>
     :root {
       --navy: #163746;
@@ -47,19 +63,14 @@
       color: var(--navy);
       font-weight: 700;
     }
-    .logo-placeholder {
-      display: grid;
-      place-items: center;
-      min-width: 132px;
-      height: 42px;
-      padding: 0 .75rem;
-      border: 1px dashed #91a8b0;
-      border-radius: 6px;
-      color: var(--muted);
-      font-size: .75rem;
-      font-weight: 500;
-      text-align: center;
+    .brand-logo {
+      display: block;
+      width: auto;
+      max-height: 42px;
+      object-fit: contain;
     }
+    .brand-logo-primary { max-width: 190px; }
+    .brand-logo-partner { max-width: 180px; }
     .brand-divider {
       width: 1px;
       height: 34px;
@@ -147,9 +158,9 @@
       border: 1px solid var(--teal);
       background: white;
       color: var(--teal-dark);
-      cursor: not-allowed;
-      opacity: .72;
     }
+    .button.secondary:hover:not(:disabled) { background: var(--wash); }
+    .button[hidden] { display: none; }
     .button:disabled { cursor: not-allowed; opacity: .62; }
     .upload-box {
       padding: 1.2rem;
@@ -190,6 +201,7 @@
       font-weight: 600;
       cursor: pointer;
     }
+    .honeypot { position: absolute; left: -10000px; width: 1px; height: 1px; overflow: hidden; }
     .status {
       min-height: 1.5em;
       margin: .85rem 0 0;
@@ -212,6 +224,9 @@
     @media (max-width: 560px) {
       .topbar-inner { align-items: flex-start; flex-direction: column; padding: 1rem 0; }
       .brand-lockup { flex-wrap: wrap; }
+      .brand-logo { max-height: 36px; }
+      .brand-logo-primary { max-width: 165px; }
+      .brand-logo-partner { max-width: 155px; }
       .brand-divider { display: none; }
       main { padding-top: 2rem; }
       .step { grid-template-columns: 2rem 1fr; gap: .75rem; }
@@ -223,9 +238,9 @@
   <header class="topbar">
     <div class="topbar-inner">
       <div class="brand-lockup" aria-label="Document exchange">
-        <span class="logo-placeholder">Hymecymeyseh logo</span>
+        <img class="brand-logo brand-logo-primary" src="/assets/hymecymeyseh-monofett-transparent.png" alt="Hymecymeyseh" width="1555" height="180">
         <span class="brand-divider" aria-hidden="true"></span>
-        <span class="logo-placeholder">Sun River Health logo</span>
+        <img class="brand-logo brand-logo-partner" src="/assets/sun-river-health-transparent.png" alt="Sun River Health" width="1260" height="265">
       </div>
       <p class="eyebrow">Document exchange</p>
     </div>
@@ -233,13 +248,13 @@
 
   <main>
     <section class="intro" aria-labelledby="page-title">
-      <p class="eyebrow">Secure document exchange</p>
+      <p class="eyebrow">Development preview</p>
       <h1 id="page-title">Complete your document exchange</h1>
       <p>Download the form, have it completed, then select the signed document files for submission.</p>
     </section>
 
     <aside class="notice" aria-label="Preview status">
-      <p><strong>Page preview:</strong> filename review works in this draft. Download and submission are not connected yet.</p>
+      <p><strong id="service-state">Checking submission service…</strong></p>
     </aside>
 
     <section class="card" aria-label="Document exchange steps">
@@ -248,8 +263,8 @@
         <div>
           <h2>Download the form</h2>
           <p class="step-copy">Get a blank copy of the form to complete.</p>
-          <button class="button secondary" type="button" disabled>Download blank form (PDF)</button>
-          <p class="hint">The public blank form will be linked here after the correct shareable copy is confirmed.</p>
+          <button class="button secondary" id="form-unavailable" type="button" disabled>Download blank form (PDF)</button>
+          <a class="button secondary" id="form-download" href="/medicaid-form" download hidden>Download blank form (PDF)</a>
         </div>
       </div>
 
@@ -261,12 +276,14 @@
           <div class="upload-box">
             <label for="documents"><strong>Select document files</strong></label>
             <input class="file-picker" id="documents" name="documents" type="file" accept=".pdf,.png,.jpg,.jpeg,application/pdf,image/png,image/jpeg" multiple>
-            <p class="hint">PDF, JPG, or PNG. Files remain on this device in this preview; nothing is uploaded.</p>
+            <p class="hint" id="upload-service-hint">PDF, JPG, or PNG; up to 20 MB per file and 25 MB total, with up to five files.</p>
+            <div id="turnstile-box" class="hint" aria-live="polite"></div>
+            <div class="honeypot" aria-hidden="true"><label>Leave this field empty<input type="text" name="website" id="website" tabindex="-1" autocomplete="off"></label></div>
             <ul class="file-list" id="file-list" aria-live="polite"></ul>
             <p class="status" id="status" role="status"></p>
             <div class="submit-area">
               <button class="button" id="submit" type="button" disabled>Submit documents</button>
-              <p class="hint">Submission will be enabled after authenticated private storage and the notification service are connected.</p>
+              <p class="hint">Files are stored outside the public web directory. Email alerts contain only a submission reference. Real documents should be submitted only after the service owner approves the host and storage.</p>
             </div>
           </div>
         </div>
@@ -275,13 +292,23 @@
   </main>
 
   <footer>
-    Draft interface only. Do not submit real documents here until the private upload service is enabled.
+    Development preview. Do not submit real documents until the service owner confirms the upload system and hosting are approved.
   </footer>
 
   <script>
     const picker = document.getElementById("documents");
     const list = document.getElementById("file-list");
     const status = document.getElementById("status");
+    const serviceState = document.getElementById("service-state");
+    const submit = document.getElementById("submit");
+    const turnstileBox = document.getElementById("turnstile-box");
+    let serviceEnabled = false;
+    let maxFileBytes = 20 * 1024 * 1024;
+    let maxTotalBytes = 25 * 1024 * 1024;
+    let maxFiles = 5;
+    let turnstileToken = "";
+    let sending = false;
+    let widgetId = null;
 
     function formatSize(bytes) {
       if (bytes < 1024) return bytes + " B";
@@ -289,23 +316,32 @@
       return (bytes / (1024 * 1024)).toFixed(1) + " MB";
     }
 
+    function selectionValid() {
+      const files = Array.from(picker.files || []);
+      return files.length > 0 && files.length <= maxFiles &&
+        files.every(file => file.size <= maxFileBytes) &&
+        files.reduce((sum, file) => sum + file.size, 0) <= maxTotalBytes;
+    }
+
+    function updateSubmitState() {
+      submit.disabled = !serviceEnabled || !selectionValid() || sending || !turnstileToken;
+    }
+
     function renderFiles() {
       list.replaceChildren();
       const files = Array.from(picker.files || []);
       status.textContent = files.length
-        ? files.length + (files.length === 1 ? " file selected." : " files selected.")
+        ? files.length + (files.length === 1 ? " file selected." : " files selected.") +
+          (selectionValid() ? "" : " Selection exceeds the file count or size limit.")
         : "No files selected.";
-
       files.forEach((file, index) => {
         const item = document.createElement("li");
         const name = document.createElement("span");
         name.className = "file-name";
         name.textContent = file.name;
-
         const size = document.createElement("span");
         size.className = "file-size";
         size.textContent = formatSize(file.size);
-
         const remove = document.createElement("button");
         remove.type = "button";
         remove.className = "remove";
@@ -317,17 +353,95 @@
             if (entryIndex !== index) next.items.add(entry);
           });
           picker.files = next.files;
+          turnstileToken = "";
+          if (widgetId !== null && window.turnstile) window.turnstile.reset(widgetId);
           renderFiles();
           picker.focus();
         });
-
         item.append(name, size, remove);
         list.append(item);
       });
+      updateSubmitState();
     }
 
-    picker.addEventListener("change", renderFiles);
+    function initializeTurnstile(siteKey) {
+      const widget = document.createElement("div");
+      turnstileBox.replaceChildren(widget);
+      const script = document.createElement("script");
+      script.src = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
+      script.async = true;
+      script.defer = true;
+      script.onload = () => {
+        if (!window.turnstile) return;
+        widgetId = window.turnstile.render(widget, {
+          sitekey: siteKey,
+          callback: token => { turnstileToken = token; updateSubmitState(); },
+          "expired-callback": () => { turnstileToken = ""; updateSubmitState(); },
+          "error-callback": () => { turnstileToken = ""; updateSubmitState(); }
+        });
+      };
+      script.onerror = () => { turnstileBox.textContent = "Verification could not load. Try again later."; };
+      document.head.append(script);
+    }
+
+    async function loadServiceConfig() {
+      try {
+        const response = await fetch("/api/config", { cache: "no-store" });
+        if (!response.ok) throw new Error("status");
+        const config = await response.json();
+        if (config.blankFormAvailable === true) {
+          document.getElementById("form-unavailable").hidden = true;
+          document.getElementById("form-download").hidden = false;
+        }
+        serviceEnabled = config.enabled === true && Boolean(config.siteKey);
+        maxFileBytes = Number(config.maxFileBytes) || maxFileBytes;
+        maxTotalBytes = Number(config.maxTotalBytes) || maxTotalBytes;
+        maxFiles = Number(config.maxFiles) || maxFiles;
+        renderFiles();
+        serviceState.textContent = serviceEnabled
+          ? "Submission service is available. Review the filenames before submitting."
+          : "Preview only: file selection works, but no files are uploaded or stored.";
+        if (serviceEnabled) initializeTurnstile(config.siteKey);
+      } catch {
+        serviceState.textContent = "Preview only: the submission service is not connected.";
+      }
+      updateSubmitState();
+    }
+
+    picker.addEventListener("change", () => {
+      turnstileToken = "";
+      if (widgetId !== null && window.turnstile) window.turnstile.reset(widgetId);
+      renderFiles();
+    });
+
+    submit.addEventListener("click", async () => {
+      if (submit.disabled) return;
+      sending = true;
+      updateSubmitState();
+      status.textContent = "Submitting files…";
+      const body = new FormData();
+      Array.from(picker.files).forEach(file => body.append("documents", file, file.name));
+      body.append("website", document.getElementById("website").value);
+      body.append("cf_turnstile_response", turnstileToken);
+      try {
+        const response = await fetch("/api/submissions", { method: "POST", body, credentials: "same-origin" });
+        const result = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(result.detail || "Submission failed. Please try again later.");
+        picker.value = "";
+        turnstileToken = "";
+        if (widgetId !== null && window.turnstile) window.turnstile.reset(widgetId);
+        renderFiles();
+        status.textContent = "Submission received. Reference: " + result.reference;
+      } catch (error) {
+        status.textContent = error.message || "Submission failed. Please try again later.";
+      } finally {
+        sending = false;
+        updateSubmitState();
+      }
+    });
+
     renderFiles();
+    loadServiceConfig();
   </script>
 </body>
 </html>

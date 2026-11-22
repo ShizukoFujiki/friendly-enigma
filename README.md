@@ -1,15 +1,7 @@
-# Document exchange page draft
+# Document exchange development prototype
 
-This is a local front-end prototype only. It does not upload or store files. File selection and filename review happen in the browser. The submit control is disabled.
+The \`dev\` branch contains a browser page and a FastAPI upload service. Uploads are disabled unless the server operator explicitly configures HTTPS origin validation, Cloudflare Turnstile, SMTP, ClamAV, and private filesystem paths outside the web root.
 
-## Before it can receive real documents
+The form shows selected filenames before submission. Uploaded files are assigned random server-side names, stored privately, scanned, and never served by a public download route. Email alerts contain only a random submission reference. This repository contains no blank form PDF, uploaded documents, credentials, or patient information.
 
-- Confirm the correct blank form to publish; do not expose a completed personal copy.
-- Connect an authenticated upload endpoint and private storage outside the public web root.
-- Add upload-side file type/size checks, safe filenames, malware handling, access logging, retention, and backup/deletion procedures.
-- Send a generic email alert with no attachments, patient details, or filenames.
-- Configure and verify HTTPS, domain routing, authentication, and staff access.
-- Replace the logo placeholders with approved assets.
-- Verify the operating organization has approved the intake flow and storage destination.
-
-No live endpoint or public deployment is configured in this draft.
+See [DEPLOYMENT.md](DEPLOYMENT.md) before deploying. This software is not a compliance certification. Do not accept real health documents until the organization responsible for the service has approved the host, storage, access, and contractual arrangements.
