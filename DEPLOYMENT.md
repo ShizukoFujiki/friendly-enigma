@@ -2,9 +2,9 @@
 
 ## Current state
 
-The \`dev\` branch now has a FastAPI upload route and a browser form wired to it. The live hostname still serves the older static page from \`main\`; this branch has not been deployed. Uploads are disabled unless the operator explicitly configures the service. The correct blank form is not in this repository.
+The \`main\` branch contains the FastAPI upload route and browser form. On November 23, 2026, the public \`/api/config\` endpoint returned HTTP 200 with uploads enabled and the blank form available. The public page and live service are therefore connected. Runtime secrets, stored documents, and the installed blank form remain on the production host and are not part of this repository.
 
-The upload endpoint accepts anonymous public submissions after Cloudflare Turnstile verification. It accepts PDF, JPG, and PNG by file signature, limits uploads to five files, 20 MB per file, and 25 MB total, rate-limits each client IP in memory, scans with ClamAV, and writes random-named files under a private directory outside the web root. SMTP notification references are stored in a private queue and retried while the service is running. It does not provide a public file retrieval route or staff dashboard. The staff workflow for retrieving files must be approved and protected on the host.
+The upload endpoint accepts public submissions after Cloudflare Turnstile verification. It accepts PDF, JPG, and PNG by file signature, limits uploads to five files, 20 MB per file, and 25 MB total, rate-limits each client IP in memory, scans with ClamAV, and writes random-named files under a private directory outside the web root. SMTP notification references are stored in a private queue and retried while the service is running. Staff retrieve files through the host-side workflow; the application has no public file retrieval route or staff dashboard.
 
 ## Development setup
 
@@ -22,7 +22,7 @@ Use dummy documents only. Create a virtual environment in the checkout and insta
 8. After confirming the PDF is the approved blank form, install it outside the checkout at an absolute path readable by the service account, such as `/opt/sunriver-forms/medicaid-form.pdf`. Set `BLANK_FORM_PATH` in `/etc/sunriver-intake.env` and restart the service. Leave it unset to disable the download. The download works independently of uploads.
 9. Test in the dev environment with dummy files. Confirm successful upload, rejection of invalid/oversized files, virus scan behavior, private filesystem permissions, and generic email delivery before a production release.
 
-\`ENABLE_UPLOADS=1\` is effective only when HTTPS public origin, Turnstile, SMTP, and ClamAV are all configured. The page stays in preview mode if the upload service is not fully configured. Email alerts contain only a random submission reference, never filenames or attachments.
+\`ENABLE_UPLOADS=1\` is effective only when HTTPS public origin, Turnstile, SMTP, and ClamAV are all configured. If the upload service is not fully configured, the page reports that online submissions are unavailable. Email alerts contain only a random submission reference, never filenames or attachments.
 
 ## Environments and release
 
