@@ -32,7 +32,7 @@ with tempfile.TemporaryDirectory(prefix="sunriver-smoke-") as private:
         try:
             connection.request("GET", "/")
             response = connection.getresponse()
-            assert response.status == 200 and b"Development preview" in response.read()
+            assert response.status == 200 and b"Complete your document exchange" in response.read()
             connection.request("GET", "/api/config")
             response = connection.getresponse()
             config = json.loads(response.read())

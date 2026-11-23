@@ -208,19 +208,6 @@
       color: var(--muted);
     }
     .submit-area { margin-top: 1.1rem; }
-    .preview-note {
-      margin: 1rem 0 0;
-      padding-top: .8rem;
-      border-top: 1px solid var(--line);
-      color: var(--muted);
-      font-size: .88rem;
-    }
-    footer {
-      padding: 1rem 0 2rem;
-      border-top: 1px solid var(--line);
-      color: var(--muted);
-      font-size: .88rem;
-    }
     @media (max-width: 560px) {
       .topbar-inner { align-items: flex-start; flex-direction: column; padding: 1rem 0; }
       .brand-lockup { flex-wrap: wrap; }
@@ -248,12 +235,11 @@
 
   <main>
     <section class="intro" aria-labelledby="page-title">
-      <p class="eyebrow">Development preview</p>
       <h1 id="page-title">Complete your document exchange</h1>
       <p>Download the form, have it completed, then select the signed document files for submission.</p>
     </section>
 
-    <aside class="notice" aria-label="Preview status">
+    <aside class="notice" aria-label="Submission status">
       <p><strong id="service-state">Checking submission service…</strong></p>
     </aside>
 
@@ -290,10 +276,6 @@
       </div>
     </section>
   </main>
-
-  <footer>
-    Development preview. Do not submit real documents until the service owner confirms the upload system and hosting are approved.
-  </footer>
 
   <script>
     const picker = document.getElementById("documents");
@@ -400,10 +382,10 @@
         renderFiles();
         serviceState.textContent = serviceEnabled
           ? "Submission service is available. Review the filenames before submitting."
-          : "Preview only: file selection works, but no files are uploaded or stored.";
+          : "Online submissions are currently unavailable.";
         if (serviceEnabled) initializeTurnstile(config.siteKey);
       } catch {
-        serviceState.textContent = "Preview only: the submission service is not connected.";
+        serviceState.textContent = "Could not connect to the submission service. Please try again later.";
       }
       updateSubmitState();
     }
